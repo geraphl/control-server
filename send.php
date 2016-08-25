@@ -12,6 +12,65 @@
 	 */
 	ini_set('display_errors', 'On');
 	include "constants.php";
+
+
+	if (isset($_REQUEST["global"]) && $_REQUEST["global"] !== "" // global variable
+		&& isset($_REQUEST["value"]) && $_REQUEST["value"] !== "") {
+			$value=$_REQUEST["value"];
+			$global=$_REQUEST["global"];
+			$sql = "UPDATE Global_Settings
+				SET V_VALUE='$value'
+				WHERE VARIABLE='$global' ";
+			$db->query($sql);
+		return;
+	}
+	
+	if (isset($_REQUEST["deviceid"]) && $_REQUEST["deviceid"] !== ""  // rename a davice	
+		&& isset($_REQUEST["name"]) && $_REQUEST["name"] !== "") {
+		$name=$_REQUEST["name"];
+		$deviceid=$_REQUEST["deviceid"];
+		$sql = "UPDATE Device_Name
+			SET DEVICE_NAME='$name'
+			WHERE DEVICE_ID=$deviceid";
+		$db->query($sql);	
+		return;
+	}
+
+	if (isset($_REQUEST["deviceid"]) && $_REQUEST["deviceid"] !== ""  // rename a davice variable
+		&& isset($_REQUEST["valid"]) && $_REQUEST["valid"] !== ""
+		&& isset($_REQUEST["name"]) && $_REQUEST["name"] !== "") {
+		$name=$_REQUEST["name"];
+		$deviceid=$_REQUEST["deviceid"];
+		$valid=$_REQUEST["valid"];		
+		$sql = "UPDATE Device_Value
+			SET VALUE_NAME='$name'
+			WHERE DEVICE_ID=$deviceid AND VALUE_ID=$valid";
+		$db->query($sql);
+		return;
+	}
+	
+	if (isset($_REQUEST["deviceid"]) && $_REQUEST["deviceid"] !== ""  // delete device
+		&& isset($_REQUEST["delete"]) {
+		$deviceid=$_REQUEST["deviceid"]; 
+	 
+	 //delete device
+		$sql = "DELETE FROM `Device_Name` WHERE DEVICE_ID = '$deviceid'";
+		$db->query($sql);
+		$sql = "DELETE FROM `Device_Value` WHERE DEVICE_ID = '$deviceid'";
+		$db->query($sql);
+		return;
+	 }
+	 
+	
+	
+	
+	
+	
+	//---------------TO DELETE ------------------
+	
+	
+	
+	
 	$commFile = "/home/python/server/commandTransfer";
 	$show_output = true;
 	$VALUE_SEPARATOR = "\x08";
