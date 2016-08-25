@@ -398,7 +398,7 @@ pre{display:block;padding:9.5px;margin:0 0 10px;font-size:13px;word-break:break-
 pre code{padding:0;font-size:inherit;color:inherit;white-space:pre-wrap;background-color:transparent;border-radius:0}
 .container,.container-fluid{padding-left:15px;padding-right:15px}
 .pre-scrollable{overflow-y:scroll}
-@media (min-width:768px){.container{width:750px}
+@media (min-width:768px){.container{width:90%/*750px*/}
 }
 @media (min-width:992px){.container{width:970px}
 }

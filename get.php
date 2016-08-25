@@ -45,11 +45,15 @@
 		return;
 	}
 	
-	if (isset($_REQUEST["vals"]) && $_REQUEST["vals"] !== "") {
-		$stmt = $db->prepare("SELECT * FROM `Device_Value` WHERE DEVICE_ID=:d_id");
-		$stmt->bindValue(':d_id', $_REQUEST["vals"]);
+	if (isset($_REQUEST["vals"])){
+		$where_stat = "";
+		if ($_REQUEST["vals"] !== "") {
+			$where_stat = "WHERE DEVICE_ID=:d_id";
+		}		
+		$stmt = $db->prepare("SELECT * FROM `Device_Value` $where_stat");
+		if ($_REQUEST["vals"] !== "") $stmt->bindValue(':d_id', $_REQUEST["vals"]);
 		$stmt->execute();		
-		$tmp_val = $stmt->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_ASSOC);
+		$tmp_val = $stmt->fetchAll(PDO::FETCH_ASSOC);
 		echo json_encode($tmp_val);
 		return;
 	}

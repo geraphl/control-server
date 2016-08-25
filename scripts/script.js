@@ -1,3 +1,122 @@
+
+/*
+ * global variables
+ */
+var xmlhttp = new XMLHttpRequest();
+var xmlhttpValues = new XMLHttpRequest();
+var devices_list;
+var values_list;
+
+
+/*
+ * spoiler click
+ */
+$(document).on('click', '.panel div.clickable', function (e) {
+	var $this = $(this); //Heading
+	var $panel = $this.parent('.panel');
+	var $panel_body = $panel.children('.panel-body');
+	var $display = $panel_body.css('display');
+
+	if ($display == 'block') {
+			$panel_body.slideUp();
+	} else if($display == 'none') {
+			$panel_body.slideDown();
+	}
+});
+
+/*
+ * devices response callback
+ */
+function device_response() {
+	if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+		try {
+			var response = xmlhttp.responseText;
+			// console.log("devices-response: " + response);
+			devices_list = JSON.parse(response, true);
+			refresh_devices_values();
+		}catch(e) { 
+			console.log(e); 
+			console.log("abort devices");
+			return;
+		}
+		xmlhttp = new XMLHttpRequest();
+	}
+}
+
+/*
+ * values response callback
+ */
+function values_response() {
+	if (xmlhttpValues.readyState == 4 && xmlhttpValues.status == 200) {
+		try {
+			var response = xmlhttpValues.responseText;
+			// console.log("values-response: " + response);
+			values_list = JSON.parse(response, true);
+			refresh_devices_values();
+			//refresh_values();
+		}catch(e) { 
+			console.log(e); 
+			console.log("abort values");
+			return;
+		}
+		xmlhttpValues = new XMLHttpRequest();
+	}
+}
+
+/*
+ * refresh devices and values
+ */
+function refresh_devices_values() {
+	if (devices_list.length == 0 || values_list == 0) return;
+	// ---mustache init devices---	
+  var template = $('#template-device').html();
+  Mustache.parse(template);   // optional, speeds up future uses
+	$('#device-list').html("");
+	for (var i in devices_list) {
+		var val = devices_list[i];
+		var rendered = Mustache.render(template, {name: val["DEVICE_NAME"], id: val["DEVICE_ID"]});
+		$('#device-list').append(rendered);
+	}
+	// ---mustache init values---	
+  var template_values = $('#template-values').html();
+  Mustache.parse(template_values); 
+	for (var i in values_list) {
+		var val = values_list[i];
+		var rendered = Mustache.render(template_values, {valueid: val["VALUE_ID"], id: val["DEVICE_ID"], name: val["VALUE_NAME"]});
+		$('#vals-dev-'+val["DEVICE_ID"]).append(rendered);
+		$('#click-dev-'+val["DEVICE_ID"]).addClass("clickable");
+		$('#chev-dev-'+val["DEVICE_ID"]).removeClass("hide");
+	}	
+	// ---spoiler init---
+	var $classy = '.panel.autocollapse';
+	var $found = $($classy);
+	$found.find('.panel-body').hide();
+	$found.removeClass($classy);
+}
+	
+function refresh_elements () {
+	values_list = [];
+	devices_list = [];
+	xmlhttp.onreadystatechange = device_response;
+	xmlhttp.open("POST", "get.php?device", true);
+	xmlhttp.send();
+	
+	xmlhttpValues.onreadystatechange = values_response;
+	xmlhttpValues.open("POST", "get.php?vals", true);
+	xmlhttpValues.send();
+}
+
+$(document).ready(function(e){
+	
+	// ---load content---
+	refresh_elements ();
+	
+	
+});
+	
+	
+	
+	/*
 	var timer;
 	
 	function refresh_color(id) {
@@ -313,4 +432,4 @@
 			$(".spoil" + num).slideToggle();
 		});
 	});
-	
+	*/
