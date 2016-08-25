@@ -8,6 +8,7 @@ include "colorPicker/picker.php";
 	
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<link rel="shortcut icon" type="image/x-icon" href="/img/colormap.gif">
+	<link rel="stylesheet" href="theme.mini.css" type="text/css" />
 	<link rel="stylesheet" href="style.css" type="text/css" />
 	<!--<script type="text/javascript" src="jscolor/jscolor.js"></script>-->
 	<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
