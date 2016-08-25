@@ -133,132 +133,83 @@
 		$stmt->bindValue(':switcher', $switcher);
 		$stmt->execute();		
 		return;
+	}	
+	
+	if (isset($_REQUEST["deviceid"]) && $_REQUEST["deviceid"] !== ""  // set value
+		&& isset($_REQUEST["valid"]) && $_REQUEST["valid"] !== ""
+		&& isset($_REQUEST["value"]) && $_REQUEST["value"] !== "") {
+		$deviceid=$_REQUEST["deviceid"];
+		$valid=$_REQUEST["valid"];
+		$stmt = $db->prepare("SELECT `POS_VALUE`, `VALUE_TYPE` FROM `Device_Value` WHERE `DEVICE_ID`=:deviceid AND `VALUE_ID`=:valid");
+		$stmt->bindValue(':deviceid', $deviceid);
+		$stmt->bindValue(':valid', $valid);
+		$stmt->execute();	
+		$array = $stmt->fetchAll(PDO::FETCH_ASSOC);
+		$posvalues=$array[0]["POS_VALUE"];
+		$valtype=$array[0]["VALUE_TYPE"];
+		
+		//check input
+		$value=$_REQUEST["value"];
+		$posvalues=json_decode($posvalues);
+		if ($valtype == "COLLECTION") {
+			if (!in_array( $value , $posvalues)) return;
+		} else if ($valtype == "SLIDER") {
+			if ($posvalues[0] > $value || $posvalues[1] < $value) return;
+		} else if ($valtype == "COLOR") {
+			    $value = ltrim($value, '#');
+					if (!ctype_xdigit($value) || strlen($value) != 6 )return;
+		}
+		
+		if (isset($_REQUEST["db"])) {
+			$stmt = $db->prepare("UPDATE  Device_Value
+				SET VALUE=:value
+				WHERE DEVICE_ID=:deviceid AND `VALUE_ID`=:valid");
+			$stmt->bindValue(':deviceid', $deviceid);
+			$stmt->bindValue(':valid', $valid);
+			$stmt->bindValue(':value', $value);
+			$stmt->execute();
+		}
+		
+		if (isset($_REQUEST["client"])) {			
+			$stmt = $db->prepare("SELECT `DEVICE_ADRESS` FROM `Device_Name` WHERE `DEVICE_ID`=:deviceid");
+			$stmt->bindValue(':deviceid', $deviceid);
+			$stmt->execute();	
+			$array = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$deviceadress=$array[0]["DEVICE_ADRESS"];
+			echo ($deviceadress);
+			
+			if (filter_var($deviceadress, FILTER_FLAG_IPV4)) {
+				$r = file_get_contents('http://'.$deviceadress.'/'.$valid.'='.$value);
+			} else if (strlen($deviceadress) == 5) { //TODO remove!!!!!
+				echo ("old adress");
+				$VALUE_SEPARATOR = "\x08";
+				$sql = "SELECT VALUE_TYPE FROM Device_Value WHERE DEVICE_ID=$deviceid AND VALUE_ID='$valid'";
+				$data = $db->query($sql);
+				$array = $data->fetchAll(PDO::FETCH_ASSOC);
+				$val_type = $array[0]['VALUE_TYPE'];
+				
+				if ($valtype == "COLLECTION") {					
+					$value=$value.'#';
+					$first=true;
+					foreach ($posvalues as $tmp_val) {
+						if (!$first) $value=$value.'|';
+						$value=$value.$tmp_val;
+						$first=false;
+					} 
+				} else if ($valtype == "SLIDER") {
+					$value=$value.'#'.$posvalues[0].'|'.$posvalues[1].'|100';
+				}
+				echo("N" . $deviceadress . "\x05C" . $valid . $val_type .
+					$VALUE_SEPARATOR . $value);
+				file_put_contents ($commFile, "N" . $deviceadress . "\x05C" . $valid . $val_type .
+					$VALUE_SEPARATOR . $value);
+					
+				
+			} else {
+				echo ("no adress");
+			}
+		}		
+		return;
 	}
 	
-	
-	
-	//---------------TO DELETE ------------------
-	
-	
-	/*
-	
-	$commFile = "/home/python/server/commandTransfer";
-	$show_output = true;
-	$VALUE_SEPARATOR = "\x08";
-
-	if (isset($_REQUEST["device"])) {
-		$device = $_REQUEST["device"]; } else { $device = "";}
-	if (isset($_REQUEST["name"])) {
-		$name = $_REQUEST["name"]; } else { $name = "";}
-	if (isset($_REQUEST["value"])) {
-		$value = $_REQUEST["value"]; } else { $value = "";}
-	if (isset($_REQUEST["type"])) {
-		$type = $_REQUEST["type"]; } else { $type = "";}
-	if (isset($_REQUEST["global"])) {
-		$global = $_REQUEST["global"]; } else { $global = "";}
-	if (isset($_REQUEST["mode"])) {
-		$mode = $_REQUEST["mode"]; } else { $mode = "both";}		
-	if (isset($_REQUEST["newName"])) {
-		$newName = $_REQUEST["newName"]; } else { $newName = "";}
-	
-	
-	if ($newName != "" && $device != "" && $name !== "") { // rename a davice variable
-		$sql = "UPDATE Device_Value
-			SET VALUE_NAME='$newName'
-			WHERE DEVICE_ID=$device AND VALUE_NAME='$name'";
-		$db->query($sql);
-		echo ("SQL-Query: " . $sql);
-
-	
-	} else if ($newName != "" && $device != "") { // rename a davice	
-		$sql = "UPDATE Device_Name
-			SET DEVICE_NAME='$newName'
-			WHERE DEVICE_ID=$device";
-		$db->query($sql);		
-		
-	} else if ($device !== "" && $name == "delete") { //delete device
-		$sql = "DELETE FROM `Device_Name` WHERE DEVICE_ID = '$device'";
-		$db->query($sql);
-		$sql = "DELETE FROM `Device_Value` WHERE DEVICE_ID = '$device'";
-		$db->query($sql);
-		
-	
-	} else if ($device !== "" && $name !== "" && $value !== "") { //set new device variable
-		$type_string = "";
-		if ($type !== "") $type_string = "($type)";
-		if ($show_output) echo "$device. $name$type_string: $value <br>";
-		
-		
-		if ($name == "POWER") {
-			/*$on = false;
-			if ($value == "ON") $on = true; */		/*	
-			file_put_contents ($commFile, "P" . $device . "\x05" . $value );
-			
-			return;
-		}
-		if ($type == "") {
-			if ($mode == "both" || $mode == "db")
-			$sql = "UPDATE Device_Value
-				SET VALUE='$value'
-				WHERE DEVICE_ID=$device AND VALUE_NAME='$name' ";
-			$db->query($sql);
-			if ($mode == "both" || $mode == "device") {
-				// get value id from valuename
-				$sql = "SELECT VALUE_ID, VALUE_TYPE FROM Device_Value WHERE DEVICE_ID=$device AND VALUE_NAME='$name'";
-				$data = $db->query($sql);
-				$array = $data->fetchAll(PDO::FETCH_ASSOC);
-				$val_ID = $array[0]['VALUE_ID'];
-				$val_type = $array[0]['VALUE_TYPE'];
-				$val_ID = sprintf("%'.02d", $val_ID);
-				
-				$sql = "SELECT DEVICE_ADRESS FROM Device_Name WHERE DEVICE_ID=$device";
-				$data = $db->query($sql);
-				$array = $data->fetchAll(PDO::FETCH_ASSOC);
-				$rec = $array[0]['DEVICE_ADRESS'];
-				
-				echo ("valid: $val_ID-  Val_type:$val_type   rec: $rec <br>");
-				//TODO Transmit via python
-				file_put_contents ($commFile, "N" . $rec . "\x05C" . $val_ID . $val_type .
-					$VALUE_SEPARATOR . $value );
-					/*
-				$t_command = "sudo /home/python/server/daemonScript.sh transmit 'C" . $val_ID . $val_type .
-					$VALUE_SEPARATOR . $value . "' " . $rec  . ' > /dev/null 2>&1 &';
-				exec($t_command, $out, $ret);
-				$out = implode("<br>",$out);
-				if ($show_output) echo "Output: <br> $out <br> Return: $ret";
-				echo ("command: $t_command <br>"); */ /*
-			}
-		} else {
-			$sql = "INSERT INTO Device_Value
-				(DEVICE_ID, VALUE_NAME, VALUE, VALUE_TYPE)
-				VALUES ('$device', '$name', '$value', '$type')
-				ON DUPLICATE KEY UPDATE
-				DEVICE_ID='$device', VALUE_NAME='$name', VALUE='$value', VALUE_TYPE='$type'";
-			$db->query($sql);
-		}		
-		if ($show_output) echo "Anfrage: $sql <br>";	
-		
-	} else if ($global !== "" && $value !== "") { // set new global variable
-		if ($global == "DAEMON_STATUS") { // handling the server
-			if (explode("#", $value)[0] == "ON") {
-				if ($show_output) echo "Start Daemon<br>";
-				//exec('python /home/python/server/realrf24/__init__.py', $out, $ret);
-				exec('sudo /home/python/server/daemonScript.sh quickstart > /dev/null 2>&1 &', $out, $ret);
-				//exec('python /home/python/server/serverDaemon.py start > /dev/null 2>&1 &', $out, $ret);
-				$out = implode("<br>",$out);
-				if ($show_output) echo "Output: <br> $out <br> Return: $ret";
-			} else {
-				if ($show_output) echo "Stop Daemon<br>";
-				
-				exec('sudo /home/python/server/daemonScript.sh stop > /dev/null 2>&1 &', $out, $ret);
-				$out = implode("<br>",$out);
-				if ($show_output) echo "Output: <br> $out <br> Return: $ret";
-			}			
-		} else {
-			$sql = "UPDATE Global_Settings
-				SET V_VALUE='$value'
-				WHERE VARIABLE='$global' ";
-			$db->query($sql);	
-		}
-	} */
 ?>

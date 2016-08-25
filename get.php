@@ -20,7 +20,7 @@
 			$where_stat = "WHERE VARIABLE=:variab";
 		}
 		$stmt = $db->prepare("SELECT * FROM `Global_Settings` $where_stat");
-		$stmt->bindValue(':variab', $_REQUEST["global"]);
+		if ($_REQUEST["global"] !== "") $stmt->bindValue(':variab', $_REQUEST["global"]);
 		$stmt->execute();	
 		$array = $stmt->fetchAll(PDO::FETCH_COLUMN|PDO::FETCH_GROUP);
 		echo json_encode($array);
@@ -37,7 +37,7 @@
 				FROM `Device_Name` AS dn 
 				LEFT JOIN `Device_Switch` AS ds ON ds.DEVICE_ID=dn.DEVICE_ID
 				$where_stat");
-		$stmt->bindValue(':device', $_REQUEST["device"]);
+		if ($_REQUEST["device"] !== "") $stmt->bindValue(':device', $_REQUEST["device"]); 
 		$stmt->bindValue(':TIME_DIF_FOR_OFFLINE', $TIME_DIF_FOR_OFFLINE);
 		$stmt->execute();
 		$array = $stmt->fetchAll(PDO::FETCH_ASSOC);			
